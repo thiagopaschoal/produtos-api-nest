@@ -1,0 +1,37 @@
+version: '3.4'
+
+services:
+  mysql:
+    image: mysql:5.7.22
+    command: mysqld --default_authentication_plugin=mysql_native_password
+    restart: always
+    environment:
+      TZ: America/Sao_Paulo
+      MYSQL_ROOT_PASSWORD: <senha-root-do-banco>
+      MYSQL_USER: <user-do-banco>
+      MYSQL_PASSWORD: <senha-do-banco>
+      MYSQL_DATABASE: produtos
+    ports:
+      - "3308:3306"
+    expose:
+      - '3306'
+    networks:
+      - mysql-net
+  app:
+    image: node:12.20.0-alpine3.10
+    restart: always
+    build: .
+    environment:
+      DATABASE_HOST: "mysql"
+      DATABASE_USER: "<usuario-do-banco>"
+      DATABASE_PASSWORD: "<senha-do-banco>"
+    command: npm start
+    depends_on:
+      - mysql
+    ports:
+      - "3000:3000"
+    networks:
+      - mysql-net
+networks:
+  mysql-net:
+    driver: bridge
