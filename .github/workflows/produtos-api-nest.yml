@@ -20,21 +20,12 @@ jobs:
       run: npm install
     - name: Run Integrated Tests
       run: npm test
-      env:
-        CI: true
-
-  push_to_registry:
-    name: Push Docker image to GitHub Packages
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@v2
-      - name: Build docker-compose
-        run: docker-compose -f docker-compose.yml up --build -d
-      - name: Push to Docker Hub
-        uses: docker/build-push-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: https://hub.docker.com/repositories
-          tag_with_ref: true
+    - name: Build docker-compose
+      run: docker-compose -f docker-compose.yml up --build -d
+    - name: Push to Docker Hub
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: https://hub.docker.com/repositories
+        tag_with_ref: true
