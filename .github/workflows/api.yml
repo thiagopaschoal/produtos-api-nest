@@ -49,30 +49,16 @@ jobs:
     needs: [build_test]
     env:
       DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
     steps:
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-        with:
-          driver-opts: network=host
-      - name: Docker meta
-        id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v1
-        with:
-          images: thisakurai/produtos-api # list of Docker images to use as base name for tags
-          tag-sha: true
+      - uses: actions/checkout@v1
       - name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+        run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - name: Build and push
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.docker_meta.outputs.tags }}
+        run: docker build -t $DOCKER_REPO:latest .
+      - name: Push image
+        run: docker push $DOCKER_REPO
 
   publish_to_aws_ecr:
     name: Publish AWS ECR
@@ -96,24 +82,3 @@ jobs:
         run: docker build -t $ECR_REGISTRY/$ECR_ARTIFACT:latest -t $ECR_REGISTRY/$ECR_ARTIFACT:${GITHUB_SHA::8} .
       - name: Push to ECR
         run: docker push $ECR_REGISTRY/$ECR_ARTIFACT
-
-  slack:
-    name: Notify Slack
-    runs-on: ubuntu-latest
-    if: failure()
-    steps:
-    - uses: 8398a7/action-slack@v3
-      with:
-        status: custom
-        fields: workflow,job,commit,repo,ref,author,took
-        custom_payload: |
-          {
-            username: 'action-slack',
-            icon_emoji: ':octocat:',
-            attachments: [{
-              color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
-              text: `${process.env.AS_WORKFLOW}\n${process.env.AS_JOB} (${process.env.AS_COMMIT}) of ${process.env.AS_REPO}@${process.env.AS_REF} by ${process.env.AS_AUTHOR} succeeded in ${process.env.AS_TOOK}`,
-            }]
-          }
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
